@@ -6,6 +6,7 @@ import pandas as pd
 COUNTRY_MAP = {"DK": "Denmark", "Danmark": "Denmark", "DE": "Germany", "Deutschland": "Germany",
                "SE": "Sweden", "Sverige": "Sweden", "US": "United States", "USA": "United States",
                "NL": "Netherlands", "Nederland": "Netherlands"}
+MAX_PLAUSIBLE_M3_DAY = 150000  # a plant bigger than this is far more likely a wrong unit than a real plant
 TO_M3_PER_DAY = {"m3/day": 1.0, "MLD": 1000.0, "gal/day": 0.003785}  # megalitres/day = 1000 m3/day
 
 
@@ -31,6 +32,7 @@ def check(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
 
     flag(df.duplicated(["name", "country"], keep="first"), "duplicate record (same name and country)")
     flag(df["capacity"].isna(), "missing capacity")
+    flag(df["capacity_m3_day"] > MAX_PLAUSIBLE_M3_DAY, "capacity looks too large, check the unit")
     flag(~df["lat"].between(-90, 90) | ~df["lon"].between(-180, 180), "coordinates out of range")
     flag(df["permit_expiry"].isna(), "permit date missing or unreadable")
     bad = reasons != ""

@@ -42,3 +42,10 @@ def test_excel_has_three_sheets(tmp_path):
     p = tmp_path / "x.xlsx"
     write_excel(clean, bad, str(p))
     assert pd.ExcelFile(p).sheet_names == ["Summary", "Top 50 leads", "Data quality log"]
+
+
+def test_a_capacity_in_the_wrong_unit_is_caught_by_size():
+    df = pd.DataFrame({"name": ["a"], "country": ["DK"], "capacity": [2_000_000.0], "capacity_unit": ["m3/day"],
+                       "lat": [55.0], "lon": [12.0], "permit_expiry": ["2028-01-01"]})
+    clean, bad = check(df)
+    assert clean.empty and "check the unit" in bad.loc[0, "reason"]

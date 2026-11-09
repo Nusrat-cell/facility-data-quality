@@ -1,27 +1,27 @@
 # Facility Data Quality
 
-A small practice project: take a messy list of industrial and municipal facilities, clean it, set aside what cannot be
-trusted with a reason, and produce a client-ready Excel file that ranks the best sales leads.
+I wanted to see what the first week of a data job at a wastewater technology company might feel like, so I made up a
+messy list of 300 facilities and tried to turn it into something a customer could open in Excel and use.
 
-It is built around the kind of work a data-savvy student analyst does for a company that sells wastewater technology:
-find the facilities that need a solution, keep the data trustworthy, and explain the result in a spreadsheet a
-customer can open.
+The data is synthetic. `fdq/sample.py` invents the facilities and then deliberately breaks them the way public
+regulatory data tends to be broken. No real plant is described anywhere.
 
-**The data is synthetic.** `fdq/sample.py` invents 300 facilities with the mess real public data has: capacity given
-in three different units, country written five ways, duplicate records, missing capacities, impossible coordinates and
-unreadable permit dates. No real facility is described.
+## What the mess looks like
+
+- capacity written in three units (m3/day, megalitres a day, gallons a day)
+- the same country spelled up to three ways (Denmark, DK, Danmark)
+- the same facility twice, sometimes with a different capital letter or a trailing space
+- missing capacities, latitudes of 999, permit dates that say "not available"
+- a few gallon figures typed into rows that say m3/day
 
 ## What it does
 
-1. **Normalise:** unify country names, tidy names, convert capacity from m3/day, megalitres a day (MLD) and gallons
-   a day to one unit.
-2. **Check:** duplicates, missing capacity, coordinates out of range and permit dates that cannot be read. A row that
-   fails is moved to the data quality log with its reason. Nothing is dropped silently.
-3. **Score:** a simple, explainable lead score: 60 points for plant size and 40 for how soon the permit expires.
-4. **Report:** `output/facilities_leads.xlsx` with three sheets: Summary, Top 50 leads, Data quality log. Header row,
-   frozen panes and sensible column widths so it is ready to send.
+It cleans the names and countries, converts every capacity to m3/day, and checks each row. A row that fails does not
+get deleted. It goes to a log sheet with the reason next to it, so whoever opens the file can see what was left out and why.
+The rows that pass get a simple lead score (60 points for plant size, 40 for how soon the permit runs out) and the top
+50 go into `output/facilities_leads.xlsx`, next to a summary sheet and the log.
 
-## Run it
+Run it:
 
 ```
 pip install pandas openpyxl pytest
@@ -29,8 +29,32 @@ python -m fdq.cli
 python -m pytest
 ```
 
-## Limits
+## What worked
 
-- The score is a starting point, not a forecast. A real version would use the customer's own criteria.
-- Unit conversion assumes the unit column is correct. A wrong unit would be caught only by a plausibility check,
-  which is the next thing I would add.
+Keeping every rejected row with a reason. On the sample, 36 of 310 rows are set aside (12 missing capacity, 6 bad
+coordinates, 5 unreadable dates, 10 exact duplicates, 4 wrong-unit capacities, minus overlaps) and a test checks that
+clean rows plus rejected rows always add up to the raw rows, so nothing disappears quietly.
+
+Cleaning the name before looking for duplicates. "FACILITY 007 " and "Facility 007" only count as the same record
+after the name is trimmed and title-cased, and I only noticed that because two of the injected duplicates slipped through
+when I checked them first.
+
+## What did not work, or only half worked
+
+- **My first version missed the wrong-unit rows.** A gallon figure typed into an m3/day row is a perfectly normal
+  looking number, so nothing complained and the plant came out thousands of times too big. I added a size check
+  (anything above 150,000 m3/day goes to the log with "check the unit"). It is a blunt rule: a real city plant that
+  large would be flagged too, so a person has to look at those rows.
+- **Duplicates are exact matches only.** "Facility 007" and "Facilty 007" are treated as two plants. Fuzzy matching
+  would catch it but also merge plants that really are different, so I left it out rather than guess.
+- **When it finds a duplicate it keeps the first row, not the most complete one.** On real data I would keep the row
+  with the fewest gaps.
+- **Coordinates are only checked for being possible, not for being right.** A latitude of 55 is accepted even if the
+  facility says it is in Sweden and the point is in the sea.
+- **The lead score is my guess.** 60/40 is not based on anything a customer told me. It is explainable, which was the
+  point, but a real team would set the weights from what their salespeople actually close.
+
+## Next
+
+A check of coordinates against the country, fuzzy duplicate suggestions that a person approves, and the real
+regulatory sources in place of the invented list.

@@ -38,5 +38,8 @@ def build(n: int = 300, seed: int = 7) -> pd.DataFrame:
     df.loc[df.sample(12, random_state=1).index, "capacity"] = None
     df.loc[df.sample(6, random_state=2).index, "lat"] = 999.0
     df.loc[df.sample(5, random_state=3).index, "permit_expiry"] = "not available"
+    # gallons typed into a row that says m3/day (looks like a normal number, only the size gives it away)
+    wrong = df[df.capacity_unit == "m3/day"].sample(4, random_state=6).index
+    df.loc[wrong, "capacity"] = df.loc[wrong, "capacity"] * 3785
     df = pd.concat([df, df.sample(10, random_state=4).assign(facility_id=lambda d: d.facility_id + "-dup")], ignore_index=True)
     return df.sample(frac=1, random_state=5).reset_index(drop=True)
