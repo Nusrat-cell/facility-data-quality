@@ -31,13 +31,13 @@ python -m pytest
 
 ## What worked
 
-Keeping every rejected row with a reason. On the sample, 36 of 310 rows are set aside (12 missing capacity, 6 bad
-coordinates, 5 unreadable dates, 10 exact duplicates, 4 wrong-unit capacities, minus overlaps) and a test checks that
-clean rows plus rejected rows always add up to the raw rows, so nothing disappears quietly.
+Keeping every rejected row with a reason. On the sample, 36 of 310 rows are set aside: 13 for missing capacity, 10 exact
+duplicates, 6 impossible coordinates, 5 unreadable permit dates and 3 capacities that look like the wrong unit (some rows
+fail for two reasons, so the reasons add up to more than 36). A test checks that clean rows plus rejected rows always
+add up to the raw rows, so nothing disappears quietly.
 
-Cleaning the name before looking for duplicates. "FACILITY 007 " and "Facility 007" only count as the same record
-after the name is trimmed and title-cased, and I only noticed that because two of the injected duplicates slipped through
-when I checked them first.
+Cleaning the name before looking for duplicates. "FACILITY 007 " and "Facility 007" only count as the same record once the
+name is trimmed and title-cased, so the check runs after that step, not before.
 
 ## What did not work, or only half worked
 
